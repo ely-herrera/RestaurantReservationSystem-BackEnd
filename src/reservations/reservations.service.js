@@ -1,60 +1,54 @@
 const knex = require('../db/connection');
 
-function list() {
-  return knex('reservations').select('*').whereNot({ status: 'finished' });
-}
+const tableName = 'reservations';
 
-function listByDate(reservation_date) {
-  return knex('reservations')
+function list(reservation_date) {
+  return knex(tableName)
     .select('*')
     .where({ reservation_date })
     .whereNot({ status: 'finished' })
-    .orderBy('reservation_time');
+    .orderBy('reservation_time', 'asc');
 }
 
 function create(newReservation) {
-  return knex('reservations')
-    .insert(newReservation)
-    .returning('*')
-    .then((newReservation) => newReservation[0]);
-}
-
-function listByPhone(mobile_number) {
-  return knex('reservations')
-    .whereRaw(
-      "translate(mobile_number, '() -', '') like ?",
-      `%${mobile_number.replace(/\D/g, '')}%`
-    )
-    .returning('*')
-    .orderBy('reservation_date');
+  return knex(tableName)
+    .insert(newReservation, '*')
+    .then((createdReservation) => createdReservation[0]);
 }
 
 function read(reservation_id) {
-  return knex('reservations').select('*').where({ reservation_id });
+  return knex(tableName).where({ reservation_id }).first();
 }
 
-function updateReservationStatus(status, reservation_id) {
-  return knex('reservations')
+function update(reservation_id, status) {
+  return knex(tableName)
     .where({ reservation_id })
-    .update({ status: status })
+    .update('status', status)
     .returning('*')
-    .then((result) => result[0]);
+    .then((theNewStuff) => theNewStuff[0]);
 }
 
-function update(updatedReservation, reservation_id) {
-  return knex('reservations')
-    .where({ reservation_id })
-    .update({ ...updatedReservation })
-    .returning('*')
-    .then((result) => result[0]);
+function updateReservation(reservation) {
+  return knex(tableName)
+    .select('*')
+    .where({ reservation_id: reservation.reservation_id })
+    .update(reservation, '*');
+}
+
+function search(mobile_phone) {
+  return knex(tableName)
+    .whereRaw(
+      "translate(mobile_number, '() -', '') like ?",
+      `%${mobile_phone.replace(/\D/g, '')}%`
+    )
+    .orderBy('reservation_date');
 }
 
 module.exports = {
-  list,
-  listByDate,
-  listByPhone,
   create,
+  list,
   read,
-  updateReservationStatus,
   update,
+  updateReservation,
+  search,
 };
